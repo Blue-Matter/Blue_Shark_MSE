@@ -12,15 +12,17 @@
 
 library(openMSE)
 library(r4ss)
+setwd("C:/GitHub/Blue_shark_MSE")
 source('Source/Input_modifiers.R')
 source('Source/SS3_Source.R')
+source('Source/MP_tuning.R')
 
 
 # === Technical Milestone 1 =====================================================================
 
 # --- Condition Reference Set -----------------------------------------------
 
-OM_RefCase = SS2OM('Assessment/Preliminary_Run_6_input',nsim=24)                 # sample var-covar to make OpenMSE class OM
+OM_RefCase = SS2OM('Assessment/Preliminary_Run_6_input',nsim=12)                 # sample var-covar to make OpenMSE class OM
 Data = SS2Data('Assessment/Preliminary_Run_6_input')                             # convert SS3 input data to OpenMSE class Data
 Data@CAL = array(NA,c(1,1,1))                                                    # don't simulate CAL data
 Data@MPrec = Data@Cat[1,ncol(Data@Cat)]                                          # assume that the recent catch observation is the current TAC
@@ -29,63 +31,65 @@ OM_RefCase@cpars$Data = Data                                                    
 OM_grid = expand.grid(Mfac = c(3/4,4/3), h = c(0.6,0.9), dep_fac = c(2/3,3/2))   # reference operating model grid
 nOM = nrow(OM_grid)                                                              # 8 total
 
-OM_mod = function(OM, Mfac = 1, h = 0.73, dep_fac = 1, Rec_fut = 1, DCV = 0.15){ # OM modifier
+OM_mod = function(OM, Mfac = 1, h = 0.73, dep_fac = 1, Rec_fut = 1, DCV = 0.05){ # OM modifier
   OM@cpars$M_ageArray = OM@cpars$M_ageArray * Mfac
   OM@h = h
   fut_yrs = (OM@maxage+OM@nyears):(OM@nyears+OM@proyears+OM@maxage)
   OM@cpars$Perr_y[,fut_yrs] = OM@cpars$Perr_y[,fut_yrs] * Rec_fut
   OM@cpars$qs = NULL
-  OM@cpars$D = trlnorm(OM@nsim,OM@D * dep_fac, DCV)
+  OM@cpars$D = trlnorm(OM@nsim,OM@D[1] * dep_fac, DCV)
   OM
 }
 
 for(i in 1:nOM){
-  OM = OM_mod(OM_RefCase, OM_grid$Mfac[i], OM_grid$h[i], OM_grid$dep_fac)        # make reference case OM
-  saveRDS(runMSE(OM,Hist=T),paste0("OMs/OM_",i,".rds"))                         # save historical OM dynamics (inc ref pts etc)
+  OM = OM_mod(OM_RefCase, OM_grid$Mfac[i], OM_grid$h[i], OM_grid$dep_fac[i])        # make reference case OM
+  saveRDS(OM,paste0("OMs/OM_",i,".rds"))                                         # save OM 
+  saveRDS(runMSE(OM,Hist=T),paste0("OMs/Hist_",i,".rds"))                        # save historical OM dynamics (inc ref pts etc)
 }  
 
 
 # --- Develop Reference MP --------------------------------------------------
 
-Ref_MP = FMSYref75()                                                             # for now, just use 75% FMSY (perfect info) as reference
+Ref_MP = FMSYref75                                                             # for now, just use 75% FMSY (perfect info) as reference
 
 
 # === Technical Milestone 2 =====================================================================
 
 # --- MP archetypes ---------------------------------------------------------
 
-Data = readRDS('OMs/OM_1.rds')@Data; x = 1
+Data = readRDS('OMs/Hist_1.rds')@Data; x = 1
 
 # calculates a TAC from a TAC modifier, maximum TAC changes and maxTAC
-doRec = function(Data, mod, maxchng, maxTAC){ 
-  if(mod > 1+maxchng)mod = 1+maxchng
-  if(mod < 1-maxchng)mod = 1-maxchng
+doRec = function(MPrec, mod, maxchng, maxTAC){ 
+  if(mod > (1+maxchng))mod = 1+maxchng
+  if(mod < (1-maxchng))mod = 1-maxchng
   Rec = new('Rec')
-  Rec@TAC = min(Data@MPrec[x]*mod, maxTAC)
+  Rec@TAC = min(MPrec*mod, maxTAC)
   Rec
 }
 
-I_targ = function(x, Data, reps = 1, targ = 1, nyrs = 3, maxchng = 0.2, maxTAC = 5E5, Ind = 9){
+I_targ = function(x, Data, reps = 1, targ = 2, nyrs = 3, maxchng = 0.3, maxTAC = 5E5, Ind = 9){
   I = Data@AddInd[x,Ind,]/mean(Data@AddInd[x,Ind,39:43],na.rm=T)
-  recI = mean(I[length(I)-(nyrs-1):0])
+  recI = mean(I[length(I)-((nyrs-1):0)])
   mod = recI/targ
-  doRec(Data, mod, maxchng, maxTAC)
+  doRec(Data@MPrec[x], mod, maxchng, maxTAC)
 }
 
-I_rat = function(x, Data, reps = 1, targ = 2, nyrs = 3, maxchng = 0.2, maxTAC = 5E5, Ind =9){
-  CpI = mean(Data@Cat[,39:43]) / mean(Data@AddInd[x,Ind,39:43],na.rm=T)
+I_rat = function(x, Data, reps = 1, targ = 0.5, nyrs = 3, maxchng = 0.3, maxTAC = 5E5, Ind =9){
+  CpI = mean(Data@Cat[x,39:43]) / mean(Data@AddInd[x,Ind,39:43],na.rm=T)
   I = Data@AddInd[x,Ind,]
-  recI = mean(I[length(I)-(nyrs-1):0])
+  recI = mean(I[length(I)-((nyrs-1):0)])
   PropTAC = recI * CpI * targ
   mod = PropTAC / Data@MPrec[x]
-  doRec(Data, mod, maxchng, maxTAC)
+  #if(ncol(Data@Cat)==50)saveRDS(Data,"C:/temp/Data.rds")
+  doRec(Data@MPrec[x], mod, maxchng, maxTAC)
 }  
 
-I_slp = function(x, Data, reps=1, targ = 0, nyrs = 5, fac = 1, maxchng = 0.2, maxTAC = 5E5, Ind = 9){
+I_slp = function(x, Data, reps=1, targ = 0.025, nyrs = 5, fac = 1, maxchng = 0.3, maxTAC = 5E5, Ind = 9){
   I = Data@AddInd[x,Ind,]/mean(Data@AddInd[x,Ind,39:43],na.rm=T)
-  slp = lm(y~x,data=data.frame(x=1:nyrs,y=I[length(I)-(nyrs-1):0]))$coefficients[[2]]
-  mod = exp(slp*fac)
-  doRec(Data, mod, maxchng, maxTAC)
+  slp = lm(y~x,data=data.frame(x=1:nyrs,y=I[length(I)-((nyrs-1):0)]))$coefficients[[2]]
+  mod = exp((slp-targ)*fac)
+  doRec(Data@MPrec[x], mod, maxchng, maxTAC)
 }
 
 class(I_targ) = class(I_rat) = class(I_slp) = "MP"
@@ -95,32 +99,47 @@ class(I_targ) = class(I_rat) = class(I_slp) = "MP"
 
 # --- MP derivatives --------------------------------------------------------
 
-It_10 = It_20 = It_M40 = I_targ
-Ir_10 = Ir_20 = Ir_M40 = I_rat
-Is_10 = Is_20 = Is_M40 = I_slp
+It_10 = It_30 = It_M40 = I_targ
+Ir_10 = Ir_30 = Ir_M40 = I_rat
+Is_10 = Is_30 = Is_M40 = I_slp
 
 formals(It_10)$maxchng = formals(Ir_10)$maxchng = formals(Is_10)$maxchng = 0.1
 formals(It_M40)$maxTAC = formals(Ir_M40)$maxTAC = formals(Is_M40)$maxTAC = 4E5
 
-class(It_10) = class(It_20) = class(It_M40) = 
-  class(Ir_10) = class(Ir_20) = class(Ir_M40) = 
-    class(Is_10) = class(Is_20) = class(Is_M40) = "MP"
+class(It_10) = class(It_30) = class(It_M40) = 
+  class(Ir_10) = class(Ir_30) = class(Ir_M40) = 
+    class(Is_10) = class(Is_30) = class(Is_M40) = "MP"
 
-allMPs = paste(rep(c("It","Ir","Is"),each=3),c("10","20","M40"),sep="_")
+allMPs = paste(rep(c("It","Ir","Is"),each=3),c("10","30","M40"),sep="_")
 
 
 # --- Demo MSE --------------------------------------------------------------
 
-OM_1 = readRDS('OMs/OM_1.rds')
-testMSE = Project(OM_1,c("It_20","Ir_20","Is_20"))
-Pplot(testMSE)
+Hist_1 = readRDS('OMs/Hist_1.rds')
+initMSE = Project(Hist_1,c("It_30","Ir_30","Is_30","FMSYref"))
+Pplot(initMSE)
+matplot(t(initMSE@Catch[,4,]),type="l")
+saveRDS(initMSE,"MSEs/initMSE.rds")
 
-demoMSE = Project(OM_1, allMPs)
-saveRDS(demoMSE,"MSEs/demoMSE.rds")
+
+# --- MP Derivatives --------------------------------------------------------
+
+derivMSE = Project(Hist_1, allMPs)
+Pplot(derivMSE)
+saveRDS(derivMSE,"MSEs/derivMSE.rds")
+
 
 # --- MP tuning -------------------------------------------------------------
 
+Hist_8 = readRDS('OMs/Hist_8.rds')
+Hist_list = list(Hist_1, Hist_8)
 
+test = runMSE(OM_1,c("Ir_30","FMSYref"))
+Pplot(test)
+matplot(t(test@Catch[,1,]),type="l")
+matplot(t(test@Catch[,2,]),type="l")
+
+Data = readRDS("C:/temp/Data.rds")
 
 
 
