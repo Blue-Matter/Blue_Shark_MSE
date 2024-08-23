@@ -131,24 +131,56 @@ saveRDS(derivMSE,"MSEs/derivMSE.rds")
 
 # --- MP tuning -------------------------------------------------------------
 
-Hist_8 = readRDS('OMs/Hist_8.rds')
-Hist_list = list(Hist_1, Hist_8)
+for(i in 1:nOM) assign(paste0("Hist_",i),readRDS(paste0("OMs/Hist_",i,".rds")))
+Hist_list = list(Hist_1, Hist_2, Hist_3, Hist_4, Hist_5, Hist_6, Hist_7, Hist_8)
 
-test = runMSE(OM_1,c("Ir_30","FMSYref"))
-Pplot(test)
-matplot(t(test@Catch[,1,]),type="l")
-matplot(t(test@Catch[,2,]),type="l")
+minfunc = function(MSE_list){
+  wts = rep(1, length(MSE_list))
+  PGKm = sapply(MSE_list,function(X){mean(X@SB_SBMSY>1 & X@F_FMSY < 1)})
+  PGKw = weighted.mean(PGKm,wts) 
+  cat(paste0("PGKw = ",round(PGKw,6),"\n"))
+  (PGKw - 0.6)^2
+}
 
-Data = readRDS("C:/temp/Data.rds")
+setup(cpus=8)     # do 8 MSE calcs in parallel (one per OM)
+sfExport('doRec') # export any functions used by MPs
 
+Ir_30_t = tune_MP(Hist_list,"Ir_30","targ",c(0.5,0.6),minfunc, tol=1E-2, parallel=T)
+Ir_10_t = tune_MP(Hist_list,"Ir_10","targ",c(0.5,0.6),minfunc, tol=1E-2, parallel=T)
+Ir_M40_t = tune_MP(Hist_list,"Ir_M40","targ",c(0.5,0.6),minfunc, tol=1E-2, parallel=T)
+
+saveRDS(Ir_30_t,"MPs/Ir_30_t.rda")
+saveRDS(Ir_10_t,"MPs/Ir_10_t.rda")
+saveRDS(Ir_M40_t,"MPs/Ir_M40_t.rda")
+
+
+It_30_t = tune_MP(Hist_list,"It_30","targ",c(1.25,1.75),minfunc, tol=1E-2, parallel=T)
+It_10_t = tune_MP(Hist_list,"It_10","targ",c(1.25,1.75),minfunc, tol=1E-2, parallel=T)
+It_M40_t = tune_MP(Hist_list,"It_M40","targ",c(1.25,1.75),minfunc, tol=1E-2, parallel=T)
+
+saveRDS(It_30_t,"MPs/It_30_t.rda")
+saveRDS(It_10_t,"MPs/It_10_t.rda")
+saveRDS(It_M40_t,"MPs/It_M40_t.rda")
+
+
+Is_30_t = tune_MP(Hist_list,"Is_30","targ",c(0,0.05),minfunc, tol=1E-2, parallel=T)
+Is_10_t = tune_MP(Hist_list,"Is_10","targ",c(0,0.05),minfunc, tol=1E-2, parallel=T)
+Is_M40_t = tune_MP(Hist_list,"Is_M40","targ",c(0,0.05),minfunc, tol=1E-2, parallel=T)
+
+saveRDS(Is_30_t,"MPs/Is_30_t.rda")
+saveRDS(Is_10_t,"MPs/Is_10_t.rda")
+saveRDS(Is_M40_t,"MPs/Is_M40_t.rda")
+
+
+# Run all tuned MPs on all OMs
+
+allMPs_t = paste0(allMPs,"_t")
+
+for(i in 1:nOM) saveRDS(Project(get(paste0("Hist_",i)), allMPs_t),paste0("MSEs/MSE_",i,".rds"))
 
 
 # === Results Presentation ======================================================================
 
-# --- Shortlisting ----------------------------------------------------------
-
-
-# --- Selection -------------------------------------------------------------
 
 
 
