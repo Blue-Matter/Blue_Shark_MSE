@@ -1,55 +1,33 @@
 
 library(Slick)
-library(SWOMSE)
-
 slick <- Slick()
-Title(slick) <- 'Demonstration North Atlantic Swordfish Results'
+
+Title(slick) <- 'Demonstration Atlantic Blue Shark MSE Results'
 Author(slick) <- 'Tom Carruthers'
 Email(slick) <- "[tom@bluematterscience.com](mailto:tom@bluematterscience.com)"
 Introduction(slick) <- '
-
 Preliminary results for discussion with the ICCAT species group meeting
-
 <strong>Note:</strong>These results are for demonstration purposes only and are subject to change. The results presented here do not necessarily reflect the point of view of ICCAT or other funders and in no ways anticipate ICCAT future policy in this area.
-
 '
 
 # MPs ----
 
-mp_names <- paste(rep(c("It","Ir","Is"),each=3),c("10","30","M40"),"_t",sep="_")
-mps <- mp_names
+mps = MPs()
+mp_names <- paste(rep(c("It","Ir","Is"),each=3),c("10","30","M40"),sep="_")
 Code(mps) <- mp_names
 
-Label(mps) <- c(paste('Constant Exploitation Rate', tunings),
-                paste('Mostly Constant Catch 5', tunings),
-                paste('Mostly Constant Catch 7', tunings),
-                paste('Mostly Constant Catch 85', tunings),
-                paste('Mostly Constant Catch 97', tunings),
-                paste('Surplus Production Model', tunings),
-                paste('Surplus Production Model v2', tunings)
-)
 
-Description(mps) <- c('Aims to maintain a constant exploitation rate (ER) at mean of 2016 - 2020. A HCR linearly reduces the ER if the current index is between 50% - 80% of the mean index from this same time period. If the current index is less than 50% of the mean historical index, exploitation rate  is set to 10% of the mean historical ER. TAC is constrained to change no more than 25% between management cycles. Tuned to 60% PGK_short.',
-                      'Same as previous but tuned to 70% PGK_short',
-                      'The goal of the MCC methods is to keep the TAC as constant as possible. The TAC changes by discrete steps according to the ratio the recent index (mean of three most recent years) to the historical target index (mean of 2017 - 2019). Tuned to 60% PGK_short.',
-                      'Same as previous but tuned to 70% PGK_short',
-                      'Same as MCC5 but different stepped changes in TAC. Tuned to 60% PGK_short.',
-                      'Same as previous but tuned to 70% PGK_short',
-                      'Same as MCC5 but different stepped changes in TAC. Tuned to 60% PGK_short.',
-                      'Same as previous but tuned to 70% PGK_short',
-                      'Same as MCC5 but different stepped changes in TAC. Tuned to 60% PGK_short.',
-                      'Same as previous but tuned to 70% PGK_short',
-                      "A state-space surplus production model is fit to the index and catch data. A constant F (Ftarget) is set (determined as a tuning parameter) and the TAC calculated by applying the F to the model's estimate of abundance. A linear harvest control rule reduces Ftarget to 0.1Ftarget if estimated B/BMSY < BMSY. If estimated B/BMSY < 0.4BMSY, Ftarget set to 0.1Ftarget. TAC is constrained to change no more than 25% between management cycles. Tuned to 60% PGK_short.",
-                      'Same as previous but tuned to 70% PGK_short',
-                      'Same as SPSSFox, except there is no constraint on reduction in TAC if estimated B/BMSY < 1. Tuned to 60% PGK_short.',
-                      'Same as previous but tuned to 70% PGK_short'
-                      )
+Label(mps) <- paste(rep(c("Index target","Index ratio","Index slope"),each=3),c("10","30","40kt"),sep="_")
 
+Description(mps) <- paste(rep(c("Aims for a target index level","TAC is a fixed factor of index level",
+                              "Aims for a target slope in index"),each=3),
+                              "with",
+                              c("10% max change in TAC","30% max change in TAC","40kt max TAC"))
 
-Preset(mps) <- list('PGK 60'=which(grepl('_b',Code(mps))),
-                    'PGK 70'=which(grepl('_c',Code(mps))))
+Preset(mps) <- list('10% TAC change'=which(grepl('_10',Code(mps))),
+                    '30% TAC change'=which(grepl('_30',Code(mps))),
+                    'Max 40kt TAC' = which(grepl('_M40',Code(mps))))
 MPs(slick) <- mps
-
 Check(mps)
 
 
@@ -58,49 +36,27 @@ Check(mps)
 # OMs ----
 oms <- OMs()
 
-Factors(oms) <- data.frame(Factor=c(rep('M',3),
-                                    rep('h', 3),
-                                    rep('Set',6)),
-                           Level=c(0.1, 0.2, 0.3,
-                                   0.69, 0.8, 0.88,
-                                   'Reference',
-                                   'R1',
-                                   'R2',
-                                   'R3a',
-                                   'R3b',
-                                   'R4'),
-                           Description=c('Natural Mortality = 0.1',
-                                         'Natural Mortality = 0.2',
-                                         'Natural Mortality = 0.3',
-                                         'Steepness = 0.69',
-                                         'Steepness = 0.80',
-                                         'Steepness = 0.88',
-                                         'Reference OMs',
-                                         'Robustness 1: Assumed 1 percent annual increase catchability (q), that is not accounted for in the standardization of the indices of abundance (historical and projection)',
-                                         'Robustness 2: Same as R1, except only in the historical period',
-                                         'Robustness 3a: Cyclical pattern in recruitment deviations in projection period; a proxy for impact of climate change on stock productivity',
-                                         'Lower than expected recruitment deviations for first 15 years of projection period; a proxy for impact of climate change on stock productivity',
-                                         'Illegal, unreported, or unregulated catches')
+Factors(oms) <- data.frame(Factor=c(rep('M',2),
+                                    rep('h', 2),
+                                    rep('Depln',2)),
+                           Level=c(c(3/4, 4/3),
+                                   c(0.6, 0.9),
+                                   c(2/3, 3/2)),
+                           Description=c(c("Low M","High M"),
+                                              c("Low steepness","High steepness"),
+                                              c("More depleted","Less depleted"))
 )
 
-Design(oms) <- data.frame(M=c(rep(c(0.1,0.2,0.3), each=3), rep(0.2, 5)),
-                          h=c(rep(c(0.69,0.8,0.88),3), rep(0.8,5)),
-                          Set=c(rep('Reference', 9),
-                                'R1', 'R2', 'R3a', 'R3b', 'R4'))
+Design(oms) <- expand.grid(M=c('3/4','4/3'), h = c('0.6','0.9'), Depln =  c('2/3', '3/2'))
 
 
-Preset(oms) <- list('Reference'=list(1:3, 1:3, 1),
-                    'R0'=list(2, 2, 1),
-                    'R1'=list(2, 2, 2),
-                    'R2'=list(2, 2, 3),
-                    'R3a'=list(2, 2, 4),
-                    'R3b'=list(2, 2, 5),
-                    'R4'=list(2, 2, 6))
+Preset(oms) <- list('Reference'=list(1:2, 1:2, 1:2),
+                    'Low M'=list(1, 1:2, 1:2),
+                    'Low steep'=list(1:2, 1, 1:2),
+                    'Depleted'=list(1:2, 1:2, 1))
 
 Check(oms)
-
 OMs(slick) <- oms
-
 
 
 
@@ -116,13 +72,14 @@ Description(timeseries) <- c('Spawning biomass relative to SBMSY',
                              'Combined Index')
 
 
+OM_1 = readRDS("OMs/OM_1.rds")
 
-years <- c(rev(seq(MOM_001@Fleets[[1]][[1]]@CurrentYr, by=-1, length.out=MOM_001@Fleets[[1]][[1]]@nyears)),
-           seq(MOM_001@Fleets[[1]][[1]]@CurrentYr+1, by=1, length.out=MOM_001@proyears))
+years <- c(rev(seq(OM_1@CurrentYr, by=-1, length.out=OM_1@nyears)),
+           seq(OM_1@CurrentYr+1, by=1, length.out=OM_1@proyears))
 
 Time(timeseries) <- years
 TimeNow(timeseries) <- 2024
-Value(timeseries) <- array(NA, dim=c(MOM_000@nsim,
+Value(timeseries) <- array(NA, dim=c(OM_1@nsim,
                                      nrow(oms@Design),
                                      length(mps@Code),
                                      length(Code(timeseries)),
@@ -130,88 +87,57 @@ Value(timeseries) <- array(NA, dim=c(MOM_000@nsim,
 )
 
 
-MSE_dir <- 'MSE_objects'
-mse_files <- list.files(MSE_dir, pattern='.mse')
+MSE_dir <- 'MSEs'
+mse_files <- paste0(MSE_dir, "/MSE_",1:9,".rds")
 mp_codes <- unlist(lapply(strsplit(Code(mps), '_'), '[[', 1)) |> unique()
 
-mp_index <- data.frame(MP=rep(1:length(mp_codes), each=2),
+mp_index <- data.frame(MP=rep(1:length(mp_codes), each=3),
                        MP_index=seq_along(Code(mps)))
 
+indno = 9 # index number used by the MPs
 
-populate_TS <- function(result_files, timeseries, omnums) {
-  for (mm in seq_along(mp_codes)) {
-    mp_files <- result_files[grepl(paste0('\\<', mp_codes[mm], '\\>'), result_files)]
-    for (i in seq_along(mp_files)) {
-      mse <- readRDS(file.path('MSE_objects', mp_files[i]))
-      mm_ind <- mp_index %>% dplyr::filter(MP%in%mm)
-
+#populate_TS <- function(mse_files, timeseries, mps) {
+  nmps = length(mps@Code)
+  for(mm in seq_along(msefiles)){
+      mse <- readRDS(mse_files[mm])
+   
       # SB/SBMSY
-      histSB <- apply(mse@multiHist$Female[[1]]@TSdata$SBiomass, 1:2, sum)
-      histSB <- replicate(length(mm_ind$MP_index), histSB)|> aperm(perm=c(1,3,2))
-      projSB <- mse@SSB[,1,,]
-      sb <- abind::abind(histSB, projSB, along=3)
-      sb_sbmsy <- sb/mse@RefPoint$ByYear$SSBMSY[,1,,]
-      Value(timeseries)[,omnums[i],mm_ind$MP_index, 1, ] <- sb_sbmsy
-
+      histSB <- apply(mse@SSB_hist, 1:2, sum)
+      histSB <- replicate(nmps, histSB)|> aperm(perm=c(1,3,2))
+      sb <- abind::abind(histSB, mse@SSB, along=3)
+      sb_sbmsy <- sb/replicate(nmps, mse@RefPoint$ByYear$SSBMSY)|> aperm(perm=c(1,3,2))
+      Value(timeseries)[,mm,, 1, ] <- sb_sbmsy
 
       # F/FMSY
-      Fs <- get_F(mse)
-      histF <- Fs %>% dplyr::filter(Period=='Historical', Stock=='Female')
-
       FS <- array(NA, dim=c(mse@nsim, mse@nMPs, mse@nyears+mse@proyears))
-      FS[,,1:mse@nyears] <-  replicate(mse@nMPs, matrix(histF$Value, mse@nsim, mse@nyears)) |>
+      FS[,,1:mse@nyears] <-  replicate(mse@nMPs, matrix(mse@FM_hist, mse@nsim, mse@nyears)) |>
         aperm(perm=c(1,3,2))
-      FS[,,(mse@nyears+1):(mse@nyears+mse@proyears)] <- mse@FM[,1,1,,]
-      f_fmsy <- FS/mse@RefPoint$ByYear$FMSY[,1,,]
-      Value(timeseries)[,omnums[i],mm_ind$MP_index, 2, ] <- f_fmsy
+      FS[,,(mse@nyears+1):(mse@nyears+mse@proyears)] <- mse@FM
+      f_fmsy <- FS/aperm(array(mse@RefPoint$ByYear$FMSY, c(mse@nsim, mse@nyears+mse@proyears,mse@nMPs)),c(1,3,2))
+      Value(timeseries)[,mm,, 2, ] <- f_fmsy
 
       # Catch
-      rem <- get_Removals(mse)
-      histC <- rem %>% dplyr::filter(Period=='Historical') |>
-        dplyr::group_by(Year, Sim) |>
-        dplyr::summarise(Catch=sum(Value))
-
       Catch <- array(NA, dim=c(mse@nsim, mse@nMPs, mse@nyears+mse@proyears))
-      Catch[,,1:mse@nyears] <-  replicate(mse@nMPs, matrix(histC$Catch, mse@nsim, mse@nyears)) |>
+      Catch[,,1:mse@nyears] <-  replicate(mse@nMPs, matrix(mse@CB_hist, mse@nsim, mse@nyears)) |>
         aperm(perm=c(1,3,2))
-      Catch[,,(mse@nyears+1):(mse@nyears+mse@proyears)] <- apply(mse@Removals, c(1,4,5), sum)
-      Value(timeseries)[,omnums[i],mm_ind$MP_index, 3, ] <- Catch
+      Catch[,,(mse@nyears+1):(mse@nyears+mse@proyears)] <- mse@Catch
+      Value(timeseries)[,mm,, 3, ] <- Catch
 
       # Index
-      for (j in seq_along(mm_ind$MP_index)) {
-        Value(timeseries)[,omnums[i],mm_ind$MP_index[j], 4, 1:(mse@nyears+mse@proyears-1)] <- mse@PPD[[1]][[1]][[j]]@Ind
+      for (j in seq_along(mps@Code)) {
+        Value(timeseries)[,mm,j, 4, 1:(mse@nyears+mse@proyears-1)] <- mse@PPD[[j]]@AddInd[,indno,]
       }
     }
   }
-  timeseries
-}
+ 
+#}
 
-# Reference OMs
-result_files <- mse_files[grepl('-Reference', mse_files)]
-timeseries <- populate_TS(result_files, timeseries, omnums=1:9)
 
-result_files <- mse_files[grepl('-R1', mse_files)]
-timeseries <- populate_TS(result_files, timeseries, omnums=10)
-
-result_files <- mse_files[grepl('-R2', mse_files)]
-timeseries <- populate_TS(result_files, timeseries, omnums=11)
-
-result_files <- mse_files[grepl('-R3a', mse_files)]
-timeseries <- populate_TS(result_files, timeseries, omnums=12)
-
-result_files <- mse_files[grepl('-R3b', mse_files)]
-timeseries <- populate_TS(result_files, timeseries, omnums=13)
-
-result_files <- mse_files[grepl('-R4', mse_files)]
-timeseries <- populate_TS(result_files, timeseries, omnums=14)
-
-Target(timeseries) <- c(1, NA, NA, NA)
+Target(timeseries) <- c(1, 1, NA, NA)
 Limit (timeseries) <- c(0.4, NA, NA, NA)
-
-
 Preset(timeseries)
-
 Timeseries(slick) <- timeseries
+
 
 
 # ---- Quilt -----
