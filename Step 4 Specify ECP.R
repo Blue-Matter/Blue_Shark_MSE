@@ -79,7 +79,7 @@ for(mm in seq_along(mse_files)){
 ECP$Pow = Pow
 # other
 
-ECP$First_Yr = 2011
+ECP$First_Yr = 2014
 
 ECP$Version = packageVersion('ECP')
 ECP$Sys.time = Sys.time()
@@ -95,12 +95,39 @@ yind = 1:6
 powind=NA
 tail="LB"
 alp = 0.05
-dens_Proj_pow(ECP,Iplot=7,OMind=OMind,yind=yind)
 
-plot_dist(ECP, OMind, Iind, yind, powind, tail, alp=alp,legloc='topleft',nspc=0)
 
-plot_all_marg_dens(ECP,OMind, Iind, yind=1:6, col="#0000ff20",adj=3,seed=15,rand=T)
-plot_CC(ECP, 0.5,0.75, maxn=10, OMind, Iind,lnam=T,lasinv=T)
+jpeg("Figures/ECP_1_dens.jpg",res=400,width=8,height=4.5,units="in")
+  plot_dist(ECP, OMind, Iind, yind, powind=NA, tail, alp=alp,legloc='topleft',nspc=0)
+dev.off()
 
-Ind = Seq_Pow_Calc_Marg(ECP, OMind, Iind = 6:7, yind=2:4, powind=1, alp=0.025, tail="interval")
+jpeg("Figures/ECP_2_dens_std.jpg",res=400,width=7,height=4.5,units="in")
+  plot_all_marg_dens(ECP,OMind, Iind, yind=1:6, col="#0000ff20",adj=3,seed=15,rand=T)
+dev.off()
+
+jpeg("Figures/ECP_3_CC.jpg",res=400,width=8,height=8,units="in")
+  plot_CC(ECP, 0.5,0.75, maxn=10, OMind, Iind, powind=1,dopow=T,lnam=T,lasinv=T)
+dev.off()
+
+jpeg("Figures/ECP_4_dens_alt.jpg",res=400,width=8,height=4.5,units="in")
+  plot_dist(ECP, OMind, Iind, yind, powind=1, tail, alp=alp,legloc='topleft',nspc=0)
+dev.off()
+
+jpeg("Figures/ECP_5_seq_pow.jpg",res=400,width=8,height=4.5,units="in")
+  Ind = Seq_Pow_Calc_Marg(ECP, OMind, Iind = 6:7, yind=1:6, powind=1, alp=0.025, tail="interval")
+dev.off()
+
+jpeg("Figures/ECP_6_seq_pow_LB.jpg",res=400,width=8,height=4.5,units="in")
+  Ind = Seq_Pow_Calc_Marg(ECP, OMind, Iind = 6:7, yind=1:6, powind=1, alp=0.025, tail="LB")
+dev.off()
+
+jpeg("Figures/ECP_7_seq_pow_7.jpg",res=400,width=8,height=4.5,units="in")
+  Ind = Seq_Pow_Calc_Marg(ECP, OMind, Iind = 7, yind=1:6, powind=1, alp=0.05, tail="interval")
+dev.off()
+
+jpeg("Figures/ECP_8_seq_pow_7.jpg",res=400,width=8,height=4.5,units="in")
+  Ind = Seq_Pow_Calc_Marg(ECP, OMind, Iind = 6:7, yind=1:6, powind=1, alp=0.05, tail="interval")
+dev.off()
+
+
 
