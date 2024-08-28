@@ -116,14 +116,14 @@ class(PGK_long) <- 'PM'
 #' @describeIn PMs Probability of being in Green Zone of Kobe Space (SB>SBMSY & F<FMSY) over all years (2025-2054)
 #' @family Status
 #' @export
-PGK <- function (MSEobj = NULL, Ref = 1, Yrs = c(3,32))  {
+PGK <- function (MSEobj = NULL, Ref = 1, Yrs = c(1,50))  {
   Yrs <- ChkYrs(Yrs, MSEobj)
   PMobj <- new("PMobj")
-  PMobj@Name <- "PKG_short: Probability of being in Green Zone of Kobe Space (SB>SBMSY & F<FMSY) in Years 1-30"
-  PMobj@Caption <- "Prob. Green Zone of Kobe Space (years 1-30)"
+  PMobj@Name <- "PKG_short: Probability of being in Green Zone of Kobe Space (SB>SBMSY & F<FMSY) in Years 1-50"
+  PMobj@Caption <- "Prob. Green Zone of Kobe Space (years 1-50)"
 
   PMobj@Ref <- Ref
-  tt <- MSEobj@SB_SBMSY[, , Yrs[1]:Yrs[2]] > 1 & MSEobj@F_FMSY[, , Yrs[1]:Yrs[2]] < 1
+  tt <- MSEobj@SB_SBMSY > 1 & MSEobj@F_FMSY < 1
   PMobj@Stat <- tt
   PMobj@Prob <- calcProb(PMobj@Stat, MSEobj)
   PMobj@Mean <- calcMean(PMobj@Prob)

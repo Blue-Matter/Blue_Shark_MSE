@@ -16,22 +16,25 @@ Preliminary results for discussion with the ICCAT species group meeting
 # MPs ----
 
 mps = MPs()
-mp_names <- paste(rep(c("It","Ir","Is"),each=3),c("10","30","M40"),sep="_")
+mp_names <- paste(rep(c("It","Ir","Is"),each=3),c("10","30","M30"),sep="_")
 Code(mps) <- mp_names
 
 
-Label(mps) <- paste(rep(c("Index target","Index ratio","Index slope"),each=3),c("10","30","40kt"),sep="_")
+Label(mps) <- paste(rep(c("Index target","Index ratio","Index slope"),each=3),c("10","30","30kt"),sep="_")
 
 Description(mps) <- paste(rep(c("Aims for a target index level","TAC is a fixed factor of index level",
                               "Aims for a target slope in index"),each=3),
                               "with",
-                              c("10% max change in TAC","30% max change in TAC","40kt max TAC"))
+                              c("10% max change in TAC","30% max change in TAC","30kt max TAC"))
 
 Preset(mps) <- list('10% TAC change'=which(grepl('_10',Code(mps))),
                     '30% TAC change'=which(grepl('_30',Code(mps))),
-                    'Max 40kt TAC' = which(grepl('_M40',Code(mps))))
-MPs(slick) <- mps
+                    'Max 30kt TAC' = which(grepl('_M30',Code(mps))))
+mps@Color[5] = "#000000"
 Check(mps)
+MPs(slick) <- mps
+
+
 
 
 
@@ -81,7 +84,7 @@ years <- c(rev(seq(OM_1@CurrentYr, by=-1, length.out=OM_1@nyears)),
            seq(OM_1@CurrentYr+1, by=1, length.out=OM_1@proyears))
 
 Time(timeseries) <- years
-TimeNow(timeseries) <- 2024
+TimeNow(timeseries) <- 2013
 Value(timeseries) <- array(NA, dim=c(OM_1@nsim,
                                      nrow(oms@Design),
                                      length(mps@Code),
@@ -175,7 +178,7 @@ kobe <- Slick::Kobe()
 Code(kobe) <- c('SB/SBMSY', 'F/FMSY')
 Label(kobe) <- Code(kobe)
 Description(kobe) <- c('SB/SBMSY', 'F/FMSY')
-Time(kobe) <- 2021:2054
+Time(kobe) <- 2013+(1:34)
 Value(kobe) <- array(NA, dim=c(mse@nsim, nrow(Design(oms)), length(Code(mps)),
                               length(Code(kobe)), 34))
 
